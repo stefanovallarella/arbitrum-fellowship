@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Hardhat
+artifacts/
+cache/
+typechain-types/
+ignition/deployments/chain-31337/
+
+# Foundry
+out/
+lib/
+dependencies/
+broadcast/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
