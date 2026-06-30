@@ -21,6 +21,66 @@ This is the official monorepo template for the **Arbitrum Stylus Fellowship** ru
 | Foundry Book          | [book.getfoundry.sh](https://book.getfoundry.sh)                                        |
 | CoBuilders            | [cobuilders.xyz](https://cobuilders.xyz)                                                |
 
+## Prerequisites
+
+Install everything below **before Week 1**. The fellowship moves fast and you don't want to debug toolchain issues during a hands-on session.
+
+### Required from Day 1
+
+| Tool                  | Min version       | What it's for                            |
+| --------------------- | ----------------- | ---------------------------------------- |
+| **Git**               | 2.x               | Version control, forking this repo       |
+| **Node.js**           | 20 LTS            | Hardhat, frontend tooling, scripts       |
+| **pnpm** _or_ **npm** | pnpm 9+ / npm 10+ | Package management                       |
+| **Foundry**           | latest            | Forge, Cast, Anvil, Chisel               |
+| **Rust**              | 1.81+ (stable)    | Stylus contracts from Week 3 on          |
+| **Docker**            | 24+               | Nitro devnode for local Arbitrum testing |
+| **Code editor**       | —                 | We recommend **Cursor** or VS Code       |
+
+### Rust & Stylus Targets (needed from Week 3)
+
+After installing Rust, add the WASM compilation target and the `cargo-stylus` CLI:
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install cargo-stylus
+```
+
+Verify with:
+
+```bash
+rustup show            # should list stable toolchain + wasm32-unknown-unknown
+cargo stylus --version
+```
+
+### Wallet & Testnet ETH
+
+| What                                  | Details                                                            |
+| ------------------------------------- | ------------------------------------------------------------------ |
+| **MetaMask** (or any injected wallet) | [metamask.io](https://metamask.io) — install the browser extension |
+| **Arbitrum Sepolia testnet ETH**      | Ask the team!                                                      |
+
+### Recommended Editor Extensions
+
+- **Solidity** — [Nomic Foundation Solidity](https://marketplace.visualstudio.com/items?itemName=NomicFoundation.hardhat-solidity) (Hardhat) or [Juan Blanco Solidity](https://marketplace.visualstudio.com/items?itemName=JuanBlanco.solidity)
+- **rust-analyzer** — [rust-lang.rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- **Even Better TOML** — for `Cargo.toml` and `foundry.toml`
+
+### Sanity Check
+
+Run these commands to verify your setup is complete:
+
+```bash
+git --version           # >= 2.x
+node -v                 # >= 20
+forge --version         # Foundry
+rustup show             # stable + wasm32-unknown-unknown
+cargo stylus --version  # cargo-stylus CLI
+docker --version        # >= 24
+```
+
+> **Tip:** You can skip the Rust/Stylus setup until Week 3 if you prefer, but we recommend getting it out of the way early.
+
 ## Repo Structure
 
 ```
