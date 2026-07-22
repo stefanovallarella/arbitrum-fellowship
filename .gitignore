@@ -23,3 +23,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code local session state (CLAUDE.md itself is tracked)
+.claude/scheduled_tasks.lock
