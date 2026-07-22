@@ -5,7 +5,7 @@ node_modules/
 artifacts/
 cache/
 typechain-types/
-ignition/deployments/chain-31337/
+**/ignition/deployments/chain-31337/
 
 # Foundry
 out/
@@ -23,3 +23,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code local session state (CLAUDE.md itself is tracked)
+.claude/scheduled_tasks.lock

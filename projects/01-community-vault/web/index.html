@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community Vault — UI de prueba</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.3rem; }
+  fieldset { margin-bottom: 1.25rem; border-radius: 8px; }
+  label { display: block; margin: 0.4rem 0 0.15rem; font-size: 0.85rem; opacity: 0.8; }
+  input { width: 100%; box-sizing: border-box; padding: 0.4rem; margin-bottom: 0.5rem; }
+  button {
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #status { font-weight: bold; }
+  #status.Active { color: #2563eb; }
+  #status.Successful { color: #16a34a; }
+  #status.Failed { color: #dc2626; }
+  .row { display: flex; justify-content: space-between; padding: 0.15rem 0; font-size: 0.95rem; }
+  .row span:first-child { opacity: 0.7; }
+  #log { font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; max-height: 160px; overflow-y: auto; background: rgba(128,128,128,0.1); padding: 0.5rem; border-radius: 6px; }
+  .error { color: #dc2626; }
+</style>
+</head>
+<body>
+  <h1>🏦 Community Vault — UI de prueba</h1>
+  <p>Interfaz mínima (sin build, sin framework) para interactuar a mano con el contrato del ejercicio 01. Requiere MetaMask apuntando al nodo local (Hardhat en <code>http://127.0.0.1:8545</code>, chain id <code>31337</code>) y la dirección donde deployaste <code>CommunityVault</code>.</p>
+
+  <fieldset>
+    <legend>Conexión</legend>
+    <label for="contractAddress">Dirección del contrato</label>
+    <input id="contractAddress" placeholder="0x..." />
+    <button id="connectBtn">Conectar wallet</button>
+    <div class="row"><span>Cuenta conectada</span><span id="account">—</span></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Estado del vault</legend>
+    <div class="row"><span>Status</span><span id="status">—</span></div>
+    <div class="row"><span>Goal</span><span id="goal">—</span></div>
+    <div class="row"><span>Deadline</span><span id="deadline">—</span></div>
+    <div class="row"><span>Total recaudado</span><span id="totalRaised">—</span></div>
+    <div class="row"><span>Balance del contrato</span><span id="balance">—</span></div>
+    <div class="row"><span>Mi contribución</span><span id="myContribution">—</span></div>
+    <div class="row"><span>Mis tokens (VRT)</span><span id="myTokens">—</span></div>
+    <button id="refreshBtn">🔄 Actualizar</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Acciones</legend>
+    <label for="contributeAmount">Contribuir (ETH)</label>
+    <input id="contributeAmount" type="number" step="0.01" placeholder="1.0" />
+    <button id="contributeBtn">Contribute</button>
+    <button id="refundBtn">Refund</button>
+    <button id="withdrawBtn">Withdraw (solo owner)</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Log</legend>
+    <div id="log">Esperando conexión...</div>
+  </fieldset>
+
+<script type="module">
+import { ethers } from "https://esm.sh/ethers@6.13.4";
+
+const ABI = [
+  "function goal() view returns (uint256)",
+  "function deadline() view returns (uint256)",
+  "function totalRaised() view returns (uint256)",
+  "function withdrawn() view returns (bool)",
+  "function contributions(address) view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
+  "function owner() view returns (address)",
+  "function getStatus() view returns (string)",
+  "function contribute() payable",
+  "function withdraw()",
+  "function refund()",
+  "event ContributionReceived(address indexed contributor, uint256 amount)",
+  "event FundsWithdrawn(address indexed owner, uint256 amount)",
+  "event RefundClaimed(address indexed contributor, uint256 amount)",
+];
+
+const $ = (id) => document.getElementById(id);
+const log = (msg, isError = false) => {
+  const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  $("log").textContent = line + "\n" + $("log").textContent;
+  if (isError) console.error(msg); else console.log(msg);
+};
+
+let provider, signer, contract, account;
+
+async function connect() {
+  if (!window.ethereum) {
+    log("No se encontró MetaMask (window.ethereum). Instalalo y recargá la página.", true);
+    return;
+  }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  const accounts = await provider.send("eth_requestAccounts", []);
+  account = accounts[0];
+  signer = await provider.getSigner();
+  $("account").textContent = account;
+
+  const address = $("contractAddress").value.trim();
+  if (!ethers.isAddress(address)) {
+    log("Pegá una dirección de contrato válida antes de conectar.", true);
+    return;
+  }
+  contract = new ethers.Contract(address, ABI, signer);
+  log(`Conectado a ${address} como ${account}`);
+  await refresh();
+}
+
+async function refresh() {
+  if (!contract) {
+    log("Conectá primero.", true);
+    return;
+  }
+  try {
+    const [goal, deadline, totalRaised, balance, myContribution, myTokens, status] =
+      await Promise.all([
+        contract.goal(),
+        contract.deadline(),
+        contract.totalRaised(),
+        provider.getBalance(await contract.getAddress()),
+        contract.contributions(account),
+        contract.balanceOf(account),
+        contract.getStatus(),
+      ]);
+
+    $("goal").textContent = `${ethers.formatEther(goal)} ETH`;
+    $("deadline").textContent = new Date(Number(deadline) * 1000).toLocaleString();
+    $("totalRaised").textContent = `${ethers.formatEther(totalRaised)} ETH`;
+    $("balance").textContent = `${ethers.formatEther(balance)} ETH`;
+    $("myContribution").textContent = `${ethers.formatEther(myContribution)} ETH`;
+    $("myTokens").textContent = `${ethers.formatEther(myTokens)} VRT`;
+    $("status").textContent = status;
+    $("status").className = status;
+
+    log("Estado actualizado.");
+  } catch (err) {
+    log(`Error leyendo el contrato: ${err.message ?? err}`, true);
+  }
+}
+
+async function contribute() {
+  const amount = $("contributeAmount").value;
+  if (!amount || Number(amount) <= 0) {
+    log("Ingresá un monto válido para contribuir.", true);
+    return;
+  }
+  try {
+    const tx = await contract.contribute({ value: ethers.parseEther(amount) });
+    log(`contribute() enviado: ${tx.hash}`);
+    await tx.wait();
+    log(`contribute() confirmado.`);
+    await refresh();
+  } catch (err) {
+    log(`contribute() falló: ${err.shortMessage ?? err.message ?? err}`, true);
+  }
+}
+
+async function refund() {
+  try {
+    const tx = await contract.refund();
+    log(`refund() enviado: ${tx.hash}`);
+    await tx.wait();
+    log(`refund() confirmado.`);
+    await refresh();
+  } catch (err) {
+    log(`refund() falló: ${err.shortMessage ?? err.message ?? err}`, true);
+  }
+}
+
+async function withdraw() {
+  try {
+    const tx = await contract.withdraw();
+    log(`withdraw() enviado: ${tx.hash}`);
+    await tx.wait();
+    log(`withdraw() confirmado.`);
+    await refresh();
+  } catch (err) {
+    log(`withdraw() falló: ${err.shortMessage ?? err.message ?? err}`, true);
+  }
+}
+
+$("connectBtn").addEventListener("click", () => connect().catch((e) => log(e.message, true)));
+$("refreshBtn").addEventListener("click", () => refresh());
+$("contributeBtn").addEventListener("click", () => contribute());
+$("refundBtn").addEventListener("click", () => refund());
+$("withdrawBtn").addEventListener("click", () => withdraw());
+</script>
+</body>
+</html>
