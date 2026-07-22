@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "monitor": "tsx src/monitor.ts"
+    "monitor": "tsx src/monitor.ts",
+    "report": "tsx src/report.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.0",

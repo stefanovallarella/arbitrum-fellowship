@@ -27,11 +27,14 @@ A mini crowdfunding contract: contributors send ETH before a deadline and receiv
 
 - [Node.js](https://nodejs.org) >= 20 (for Hardhat)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) (for Foundry)
+- A browser with [MetaMask](https://metamask.io) (only needed for `web/`, the manual-testing UI)
 
 ## Project Structure
 
 ```
 01-community-vault/
+├── web/               # Minimal browser UI to poke the contract by hand (no build step)
+│   └── index.html
 ├── hardhat/          # Hardhat-based project (TypeScript)
 │   ├── contracts/
 │   │   └── CommunityVault.sol
@@ -49,6 +52,27 @@ A mini crowdfunding contract: contributors send ETH before a deadline and receiv
     │   └── Deploy.s.sol
     └── foundry.toml
 ```
+
+---
+
+## Web UI (manual testing in the browser)
+
+`web/index.html` is a single static file (no build step, no framework — vanilla JS + [ethers.js](https://docs.ethers.org/v6/) loaded from a CDN) to poke the deployed contract by hand: connect a wallet, see `goal`/`deadline`/`totalRaised`/status live, contribute ETH, and call `refund()`/`withdraw()`.
+
+**To try it:**
+
+1. Start a local node and deploy the contract (see the Hardhat or Foundry sections below) — note the deployed address.
+2. Serve the `web/` folder (it can't be opened as a bare `file://` URL because MetaMask/ethers needs a real origin):
+   ```bash
+   cd web
+   npx serve -l 5173 .
+   ```
+3. Open `http://127.0.0.1:5173` in a browser with MetaMask installed.
+4. In MetaMask, add a network pointing at `http://127.0.0.1:8545`, chain ID `31337` (Hardhat) — and import one of the local node's default private keys (printed when `npx hardhat node` starts) so you have funded test ETH.
+5. Paste the deployed contract address into the "Dirección del contrato" field and click **Conectar wallet**.
+6. Enter an amount and click **Contribute** — MetaMask will prompt you to confirm the transaction. Status flips to `Successful` once `totalRaised >= goal`; the connected owner account can then click **Withdraw**. If you instead let the deadline pass without reaching the goal, **Refund** becomes the correct action for each contributor.
+
+This was verified end-to-end with a headless-browser smoke test (Playwright driving real page JS against a live local Hardhat node — MetaMask itself isn't automatable in a sandbox, so a minimal EIP-1193 provider stood in for it): connect → contribute 1 ETH → status flips to `Successful` → tokens minted 1:1 → owner `withdraw()` succeeds → non-owner `withdraw()` fails gracefully in the UI log instead of crashing.
 
 ---
 

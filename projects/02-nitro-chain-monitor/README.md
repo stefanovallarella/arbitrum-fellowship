@@ -58,6 +58,17 @@ Each poll reads, via `eth_call` against the L2 node:
 - `ArbGasInfo.getL1BaseFeeEstimate()` (selector `0xf5d6ded7`) — estimated L1 posting cost
 - `ArbGasInfo.getMinimumGasPrice()` (selector `0xf918379a`) — L2 gas price floor
 
+## Viewing results in the browser
+
+The terminal output is NDJSON (one metrics snapshot per line), not something you'd want to eyeball directly. `src/report.ts` turns a captured run into a single self-contained static HTML page (sparkline SVGs + a full data table) — no server needed, no live RPC connection, just open the file:
+
+```bash
+cd monitor
+npx tsx src/report.ts ../output/metrics.ndjson ../output/report.html
+```
+
+Then open `output/report.html` directly in any browser (double-click it, or `start output/report.html` on Windows). [`output/report.html`](./output/report.html) in this repo is the report generated from the captured run described below.
+
 ...plus standard RPC: `eth_blockNumber` on the L1 node, and `gasUsed`/`gasLimit` from the latest L2 block (block fill %).
 
 ## Generating load
