@@ -5,7 +5,7 @@ node_modules/
 artifacts/
 cache/
 typechain-types/
-ignition/deployments/chain-31337/
+**/ignition/deployments/chain-31337/
 
 # Foundry
 out/
