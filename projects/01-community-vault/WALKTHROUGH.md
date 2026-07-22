@@ -1,6 +1,6 @@
 # Walkthrough — Community Vault paso a paso
 
-Este documento no es la referencia técnica (para eso está el `README.md`) — es el repaso narrado de **qué hicimos, en qué orden, y por qué**, la primera vez que probamos el contrato a mano desde el navegador. Sirve para volver a entender los conceptos aplicados a la práctica, no solo leídos en la teoría de [Block 1](../../docs/block-1-ethereum-evm/README.md).
+Este documento no es la referencia técnica (para eso está el `README.md`) — es el repaso narrado de **qué hicimos, en qué orden, y por qué**, la primera vez que probamos el contrato a mano desde el navegador. Sirve para volver a entender los conceptos aplicados a la práctica, no solo leídos en la teoría de [Block 1](../../docs/block-1-ethereum-evm/README.md) — el bloque del currículum que cubre cómo Ethereum ejecuta transacciones y cómo se escribe/asegura un contrato en Solidity. Cada vez que este documento cita un módulo, va acompañado de una explicación corta de qué significa el concepto — no hace falta ir a leer la documentación para entender la referencia, solo para profundizar si querés.
 
 ## El panorama: 4 capas hablando entre sí
 
@@ -82,7 +82,7 @@ A diferencia de leer, esto **cambia el estado de la blockchain** — necesita tu
        emit ContributionReceived(msg.sender, msg.value);
    }
    ```
-   Acá `msg.sender` es tu dirección (la que firmó) y `msg.value` es el ETH que mandaste — los mismos conceptos de [Module 1.1](../../docs/block-1-ethereum-evm/module-1.1-ethereum-execution-model.md), ahora con datos reales tuyos en vez de teoría.
+   Acá `msg.sender` y `msg.value` son datos que **el protocolo mismo adjunta a cada transacción**, no algo que vos le pasás como argumento — `msg.sender` es la dirección que firmó, `msg.value` el ETH que venía adjunto. Es el "modelo de ejecución" de [Module 1.1](../../docs/block-1-ethereum-evm/module-1.1-ethereum-execution-model.md): todo contrato recibe estos dos datos gratis en cada llamada, y son la base de cualquier lógica de permisos ("¿quién me está llamando?") o de pago ("¿cuánto me mandó?") en Solidity — acá los estás viendo con tu propia dirección y tu propio ETH en vez de en un ejemplo genérico.
 4. El estado cambió **de verdad, on-chain**: `totalRaised` pasó de `0` a `1.0 ETH`. Eso no vive en la página ni en MetaMask — vive en el storage del contrato, en el nodo. Cerrar el navegador no lo borra.
 5. `getStatus()` recalculó solo, sin guardar ningún flag: `if (totalRaised >= goal) return "Successful";` — como pusiste exactamente el goal, pasó a `Successful`.
 
@@ -110,7 +110,7 @@ function withdraw() external onlyOwner nonReentrant {
     emit FundsWithdrawn(owner(), amount);
 }
 ```
-Al ser la cuenta owner, funcionó directo. El patrón **checks-effects-interactions** ([Module 1.2](../../docs/block-1-ethereum-evm/module-1.2-solidity-abi-contract-lifecycle.md)) es literal acá: `withdrawn = true` se escribe *antes* de mandar el ETH, para que una eventual reentrancy no pueda volver a entrar y retirar dos veces.
+Al ser la cuenta owner, funcionó directo. El patrón **checks-effects-interactions** ([Module 1.2](../../docs/block-1-ethereum-evm/module-1.2-solidity-abi-contract-lifecycle.md) — el módulo que cubre los pitfalls de seguridad de Solidity) es literal acá: `withdrawn = true` se escribe *antes* de mandar el ETH. El motivo concreto: cuando el contrato manda ETH con `.call{value:...}("")`, si el que lo recibe es otro contrato, ese contrato puede ejecutar código propio en el momento de recibir el pago — incluyendo volver a llamar a `withdraw()` antes de que la primera llamada haya terminado (eso es un ataque de **reentrancy**). Si `withdrawn = true` se escribiera *después* de mandar el ETH, esa segunda llamada todavía vería `withdrawn = false` y podría retirar de nuevo. Escribiéndolo antes, la segunda llamada choca con `if (withdrawn) revert AlreadyWithdrawn();` y no puede duplicar el retiro.
 
 ## Paso 7 — `refund()`: el camino "fracaso" (necesitó un contrato nuevo)
 
@@ -125,11 +125,11 @@ Si hubiéramos llamado `refund()` antes de los 60 segundos: `DeadlineNotReached`
 
 ## Para repasar rápido
 
-| Qué vimos | Dónde en el contrato | Concepto de Block 1 |
-|---|---|---|
-| Firma de transacción | MetaMask, antes de cualquier `write` | Private key / cuentas |
-| `msg.sender`, `msg.value` | `contribute()` | [Module 1.1](../../docs/block-1-ethereum-evm/module-1.1-ethereum-execution-model.md) — execution model |
-| Custom errors + revert data | Todo el contrato | [Module 1.2](../../docs/block-1-ethereum-evm/module-1.2-solidity-abi-contract-lifecycle.md) — ABI encoding |
-| Checks-effects-interactions | `withdraw()`, `refund()` | [Module 1.2](../../docs/block-1-ethereum-evm/module-1.2-solidity-abi-contract-lifecycle.md) — reentrancy |
-| Pull pattern | `refund()` | Deliverable del brief original |
-| Lecturas vs escrituras (`eth_call` vs tx firmada) | `getStatus()` vs `contribute()` | [Module 1.1](../../docs/block-1-ethereum-evm/module-1.1-ethereum-execution-model.md) |
+| Qué vimos | Dónde en el contrato | Qué significa, concretamente | Módulo |
+|---|---|---|---|
+| Firma de transacción | MetaMask, antes de cualquier `write` | Tu private key produce una firma criptográfica que prueba "esto lo autorizó el dueño de esta cuenta" — sin ella, nadie puede armar una transacción válida en tu nombre aunque sepan tu dirección | Private key / cuentas |
+| `msg.sender`, `msg.value` | `contribute()` | Datos que el protocolo adjunta automáticamente a cada llamada: quién te llamó y cuánto ETH mandó junto con la llamada — la base de cualquier control de acceso o pago en Solidity | [Module 1.1](../../docs/block-1-ethereum-evm/module-1.1-ethereum-execution-model.md) — execution model |
+| Custom errors + revert data | Todo el contrato | Cada `error Xyz()` tiene un selector de 4 bytes (como una función) que viaja en el revert — se puede decodificar comparando contra los selectores conocidos, como hicimos con `0x70f65caa` = `DeadlinePassed()` | [Module 1.2](../../docs/block-1-ethereum-evm/module-1.2-solidity-abi-contract-lifecycle.md) — ABI encoding |
+| Checks-effects-interactions | `withdraw()`, `refund()` | Guardar el estado (ej. `withdrawn = true`) *antes* de mandar ETH, para que si el receptor intenta "reentrar" a la función durante el envío, encuentre el estado ya actualizado y no pueda duplicar la operación | [Module 1.2](../../docs/block-1-ethereum-evm/module-1.2-solidity-abi-contract-lifecycle.md) — reentrancy |
+| Pull pattern | `refund()` | Cada contribuyente reclama su propio reembolso llamando la función, en vez de que el contrato le mande ETH a todos en un loop — evita que un solo envío fallido bloquee a los demás | Deliverable del brief original |
+| Lecturas vs escrituras (`eth_call` vs tx firmada) | `getStatus()` vs `contribute()` | Leer el contrato (`view`) es gratis e instantáneo, no cambia nada ni pide firma; escribir (`external` sin `view`) cambia el estado on-chain, cuesta gas y necesita tu firma — por eso solo el segundo caso te muestra un popup de MetaMask | [Module 1.1](../../docs/block-1-ethereum-evm/module-1.1-ethereum-execution-model.md) |
