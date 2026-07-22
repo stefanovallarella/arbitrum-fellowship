@@ -1,0 +1,12 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["dependencies"]
+solc = "0.8.27"
+
+[dependencies]
+forge-std = "1.9.6"
+"@openzeppelin-contracts" = "5.1.0"
+
+[rpc_endpoints]
+arbitrum_sepolia = "https://sepolia-rollup.arbitrum.io/rpc"
