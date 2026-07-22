@@ -1,0 +1,16 @@
+{
+  "name": "02-nitro-chain-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "monitor": "tsx src/monitor.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "~5.8.0"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
+  }
+}

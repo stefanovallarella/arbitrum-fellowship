@@ -1,0 +1,22 @@
+# Condensed workload run log
+# (raw stdout was ~1.1MB of ethers.js transaction/receipt object dumps — stripped here, keeping only the timing/summary that matters)
+
+## Run 1 — single-thread, exploratory
+./test-node.bash script send-l2 --from funnel --to funnel --ethamount 0.0001 --times 1500 --threads 1
+workload-start 2026-07-22T14:04:47Z
+workload-end   2026-07-22T14:07:53Z
+Result: ~1500 sequential txs, ~186s wall time (~8 tx/s). No nonce errors (single account, single thread).
+Note: an earlier attempt with --threads 8 on the shared "funnel" account failed with NONCE_EXPIRED /
+"nonce too low" — concurrent threads racing on one account's nonce counter. Root cause of the fix
+documented in the project README.
+
+## Run 2 — funding step for independent per-thread accounts
+./test-node.bash script send-l2 --from funnel --to threaduser_load --threads 6 --times 1 --serial --wait --ethamount 1
+Result: funded 6 independent threaduser_load_thread_{0..5} accounts with 1 ETH each, serially (no races).
+
+## Run 3 — real concurrent burst (the one captured in output/metrics.ndjson)
+./test-node.bash script send-l2 --from threaduser_load --to threaduser_load --threads 6 --times 500 --ethamount 0.0001
+workload-start 2026-07-22T14:07:51Z
+workload-end   2026-07-22T14:07:53Z
+Result: 6 threads x 500 self-transfers = 3,000 transactions submitted fire-and-forget in ~2 seconds.
+This is the burst referenced in the monitor's "during load" window (elapsed ~15-17s in metrics.ndjson).
