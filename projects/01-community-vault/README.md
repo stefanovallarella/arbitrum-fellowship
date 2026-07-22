@@ -2,6 +2,8 @@
 
 A mini crowdfunding contract: contributors send ETH before a deadline and receive `VaultReceipt` (VRT) ERC-20 tokens 1:1 (wei:token) in return. If the funding `goal` is reached, the owner can withdraw everything; if the deadline passes without reaching the goal, each contributor pulls their own refund.
 
+> Looking for a narrated, concept-by-concept walkthrough of an actual manual test session (MetaMask setup, a real revert we diagnosed, contribute/withdraw/refund) instead of just the reference commands below? See [`WALKTHROUGH.md`](./WALKTHROUGH.md).
+
 ## Contract Overview
 
 `CommunityVault` is itself the ERC-20 receipt token (inherits OpenZeppelin's `ERC20`, `Ownable`, `ReentrancyGuard`).

@@ -90,7 +90,34 @@ const ABI = [
   "event ContributionReceived(address indexed contributor, uint256 amount)",
   "event FundsWithdrawn(address indexed owner, uint256 amount)",
   "event RefundClaimed(address indexed contributor, uint256 amount)",
+  "error ZeroContribution()",
+  "error DeadlinePassed()",
+  "error DeadlineNotReached()",
+  "error GoalNotMet()",
+  "error GoalAlreadyMet()",
+  "error AlreadyWithdrawn()",
+  "error NoContribution()",
+  "error TransferFailed()",
+  "error OwnableUnauthorizedAccount(address account)",
 ];
+
+const ERROR_MESSAGES = {
+  ZeroContribution: "El monto tiene que ser mayor a 0.",
+  DeadlinePassed: "El deadline de la campaña ya pasó — no se aceptan más contribuciones.",
+  DeadlineNotReached: "Todavía no llegó el deadline, no se puede pedir refund todavía.",
+  GoalNotMet: "El goal todavía no se alcanzó, el owner no puede retirar.",
+  GoalAlreadyMet: "El goal se alcanzó — no corresponde refund, el owner debe hacer withdraw.",
+  AlreadyWithdrawn: "El owner ya retiró los fondos, no se puede retirar de nuevo.",
+  NoContribution: "Esta cuenta no tiene ninguna contribución para reclamar.",
+  TransferFailed: "La transferencia de ETH falló.",
+  OwnableUnauthorizedAccount: "Esta cuenta no es la owner del contrato.",
+};
+
+function friendlyError(err) {
+  const name = err?.revert?.name ?? err?.errorName;
+  if (name && ERROR_MESSAGES[name]) return `${name}: ${ERROR_MESSAGES[name]}`;
+  return err.shortMessage ?? err.message ?? String(err);
+}
 
 const $ = (id) => document.getElementById(id);
 const log = (msg, isError = false) => {
@@ -167,7 +194,7 @@ async function contribute() {
     log(`contribute() confirmado.`);
     await refresh();
   } catch (err) {
-    log(`contribute() falló: ${err.shortMessage ?? err.message ?? err}`, true);
+    log(`contribute() falló: ${friendlyError(err)}`, true);
   }
 }
 
@@ -179,7 +206,7 @@ async function refund() {
     log(`refund() confirmado.`);
     await refresh();
   } catch (err) {
-    log(`refund() falló: ${err.shortMessage ?? err.message ?? err}`, true);
+    log(`refund() falló: ${friendlyError(err)}`, true);
   }
 }
 
@@ -191,7 +218,7 @@ async function withdraw() {
     log(`withdraw() confirmado.`);
     await refresh();
   } catch (err) {
-    log(`withdraw() falló: ${err.shortMessage ?? err.message ?? err}`, true);
+    log(`withdraw() falló: ${friendlyError(err)}`, true);
   }
 }
 

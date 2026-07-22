@@ -2,6 +2,8 @@
 
 A monitor that polls Arbitrum precompiles (`ArbSys`, `ArbGasInfo`) and standard JSON-RPC against a local [Nitro testnode](https://github.com/OffchainLabs/nitro-testnode), while a workload script generates a burst of L2 transactions, to observe how L1/L2 block numbers, gas price, L1 base fee estimate, and block fill behave before, during, and after load.
 
+> Looking for a narrated, concept-by-concept walkthrough of an actual live session (what each Docker init phase does, why the L2 block number stayed flat then reacted, why it kept climbing after the workload script exited) instead of just the reference commands below? See [`WALKTHROUGH.md`](./WALKTHROUGH.md).
+
 ## What's here
 
 ```
@@ -104,6 +106,8 @@ Full run captured in [`output/metrics.ndjson`](./output/metrics.ndjson) / [`outp
 | Baseline (0-14s) | 595 → 607 | 1333 → 1390 | 0.000000029 gwei | 0.1 gwei | 0.00% |
 | During burst (~16-40s) | 611 → 631 | 1399 → 1479 | 0.000000029 gwei | 0.1 gwei | 0.00% |
 | After (40-100s) | 631 → ... | 1479 → ... | 0.000000029 gwei | 0.1 gwei | 0.00% |
+
+A second, later run ([`output/metrics-live-demo.ndjson`](./output/metrics-live-demo.ndjson) / [`output/report-live-demo.html`](./output/report-live-demo.html)) shows the idle→load contrast even more clearly, because this time the L2 block number was genuinely frozen (not just flat-ish) before any load: `l2Block` sat at exactly `9` for the first ~21 seconds, then started climbing the moment a 300-tx burst was fired, ending at `470` while `l1Block`, gas price, and fill stayed just as flat as in the first run. See [`WALKTHROUGH.md`](./WALKTHROUGH.md) for the full narrated diagnosis, including tracing the block's actual transactions (an ArbOS-internal tx + one real transaction from our burst per block) to explain why the L2 block number kept climbing for almost a minute after the workload command had already returned.
 
 **The honest, slightly surprising finding**: on this local dev testnode, **none of the gas-related metrics moved at all**, even though the burst really did land (3,000 txs confirmed within ~2s, verified via the workload script's own output). What *didn't* change:
 
